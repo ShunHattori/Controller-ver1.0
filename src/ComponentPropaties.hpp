@@ -2,8 +2,8 @@
 #include "Arduino.h"
 #include "SoftwareSerial.h"
 
-constexpr uint8_t ss_rx_pin = 2;
-constexpr uint8_t ss_tx_pin = 3;
+constexpr uint8_t ss_rx_pin = 3;
+constexpr uint8_t ss_tx_pin = 2;
 constexpr uint8_t switch_num = 10;
 constexpr uint8_t ASCII_OFFSET = 48;
 
