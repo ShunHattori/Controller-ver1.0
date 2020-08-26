@@ -107,10 +107,9 @@ inline void RE_Trans::generateFrameData()
         // Serial.print('\t');
         // Serial.println(byte(dataFrame[i + 5]));
     }
-
     uint16_t potentiometer_val = analogRead(ANALOGIN1_PROPS.pin);
     dataFrame[9] = rescaling_analog_val(potentiometer_val, 6) + ASCII_OFFSET;
-    // Serial.print(potentiometer_val);
+    // Serial.print(log10(potentiometer_val));
     // Serial.print('\t');
     // Serial.println(rescaling_analog_val(potentiometer_val, 6));
     return;
@@ -118,15 +117,19 @@ inline void RE_Trans::generateFrameData()
 
 inline uint8_t RE_Trans::rescaling_analog_val(uint16_t analog_val, uint8_t divide_num)
 {
-    const double step_val = 1023.0 / divide_num;
+    const double step_val = 3.0 / divide_num; //log10(1023) = 3.0
+    if (analog_val < 3)
+    {
+        return 1;
+    }
     for (uint8_t i = 1; i < divide_num + 1; i++)
     {
-        if (analog_val <= step_val * i)
+        if (log10(analog_val) <= (step_val * i) + ((divide_num + 1) - i) * 0.2)
         {
             return i;
         }
     }
-    return 1;
+    return divide_num;
 }
 
 inline void RE_Trans::clearBuffer()
