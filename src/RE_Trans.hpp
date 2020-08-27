@@ -7,7 +7,7 @@ class RE_Trans
 {
 private:
     FlagSet &flag_set;
-    char dataFrame[12];
+    char dataFrame[13];
 
     void clearBuffer();
     void generateFrameData();
@@ -39,8 +39,9 @@ inline RE_Trans::RE_Trans(FlagSet &flag_set_) : flag_set(flag_set_)
     dataFrame[7] = '0';
     dataFrame[8] = '0';
     dataFrame[9] = '0';
-    dataFrame[10] = '\r';
-    dataFrame[11] = '\n';
+    dataFrame[10] = '0';
+    dataFrame[11] = '\r';
+    dataFrame[12] = '\n';
 };
 
 inline uint8_t RE_Trans::transmit()
@@ -72,8 +73,8 @@ inline uint8_t RE_Trans::transmit()
     {
         for (uint8_t i = 0; i < sizeof(dataFrame) / sizeof(char); i++)
         {
-            Serial.print(char(dataFrame[i]));
-            IM920_PROPS.port.print(dataFrame[i]);
+            //Serial.print(char(dataFrame[i]));
+            IM920_PROPS.port.print((char)dataFrame[i]);
         }
     }
 
