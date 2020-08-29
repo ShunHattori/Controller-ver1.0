@@ -9,7 +9,7 @@ class RE_Trans
 private:
     FlagSet &flag_set;
     Observer<bool> obs1, obs2, obs3, obs4, obs5, obs6, obs7, obs8, obs9, obs10;
-    Observer<int> obs11;
+    Observer<int> obs11, obs12;
     char dataFrame[13];
     uint8_t queue = 0;
     bool data_send_flag = 0;
@@ -179,6 +179,11 @@ inline uint8_t RE_Trans::rescaling_analog_val(uint16_t analog_val, uint8_t divid
 
 inline void RE_Trans::updateTargetLEDs(uint8_t machine_Num)
 {
+    if (!obs12.isChanged(machine_Num))
+    {
+        return;
+    }
+
     bool LEDstate[4];
     switch (machine_Num)
     {
