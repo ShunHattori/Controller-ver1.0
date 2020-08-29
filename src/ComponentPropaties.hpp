@@ -48,3 +48,13 @@ struct AnalogInPropaties
 };
 
 constexpr AnalogInPropaties ANALOGIN1_PROPS = {A0};
+
+struct UserLEDs
+{
+    uint8_t pin;
+};
+
+constexpr UserLEDs userLED1 = {A1};
+constexpr UserLEDs userLED2 = {A3};
+constexpr UserLEDs userLED3 = {A4};
+constexpr UserLEDs userLED4 = {A5};
