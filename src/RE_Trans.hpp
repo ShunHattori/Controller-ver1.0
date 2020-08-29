@@ -2,15 +2,22 @@
 #include "Arduino.h"
 #include "ComponentPropaties.hpp"
 #include "FlagSet.hpp"
+#include "Observer.hpp"
 
 class RE_Trans
 {
 private:
     FlagSet &flag_set;
+    Observer<bool> obs1, obs2, obs3, obs4, obs5, obs6, obs7, obs8, obs9, obs10;
+    Observer<int> obs11;
     char dataFrame[13];
+    uint8_t queue = 0;
+    bool data_send_flag = 0;
 
     void clearBuffer();
+    void queueProcess();
     void generateFrameData();
+    void updateTargetLEDs(uint8_t);
     bool waitMs(uint8_t);
     uint8_t transmit_interval;
     uint16_t power(uint16_t, uint16_t);
@@ -20,15 +27,13 @@ public:
     RE_Trans(FlagSet &);
     virtual ~RE_Trans() {}
 
+    void initialize();
     uint8_t transmit();
 };
 
 inline RE_Trans::RE_Trans(FlagSet &flag_set_) : flag_set(flag_set_)
 {
-    IM920_PROPS.port.begin(IM920_PROPS.baud);
-    IM920_PROPS.port.listen();
-    pinMode(IM920_PROPS.busy_pin, INPUT);
-    transmit_interval = 15;
+    transmit_interval = 500;
     dataFrame[0] = 'T';
     dataFrame[1] = 'X';
     dataFrame[2] = 'D';
@@ -43,6 +48,17 @@ inline RE_Trans::RE_Trans(FlagSet &flag_set_) : flag_set(flag_set_)
     dataFrame[11] = '\r';
     dataFrame[12] = '\n';
 };
+
+inline void RE_Trans::initialize()
+{
+    IM920_PROPS.port.begin(IM920_PROPS.baud);
+    IM920_PROPS.port.listen();
+    pinMode(IM920_PROPS.busy_pin, INPUT);
+    pinMode(userLED1.pin, OUTPUT);
+    pinMode(userLED2.pin, OUTPUT);
+    pinMode(userLED3.pin, OUTPUT);
+    pinMode(userLED4.pin, OUTPUT);
+}
 
 inline uint8_t RE_Trans::transmit()
 {
@@ -62,24 +78,50 @@ inline uint8_t RE_Trans::transmit()
     //     ;
     /********TEST CODE HERE*********/
 
-    if (!waitMs(transmit_interval))
-    {
+    queueProcess();
+
+    if (!(queue > 0) || !data_send_flag)
         return 0;
-    }
+    queue--;
 
     generateFrameData();
 
-    if (!digitalRead(IM920_PROPS.busy_pin))
+    for (uint8_t i = 0; i < sizeof(dataFrame) / sizeof(char); i++)
     {
-        for (uint8_t i = 0; i < sizeof(dataFrame) / sizeof(char); i++)
-        {
-            //Serial.print(char(dataFrame[i]));
-            IM920_PROPS.port.print((char)dataFrame[i]);
-        }
+        //Serial.print(char(dataFrame[i]));
+        IM920_PROPS.port.print((char)dataFrame[i]);
     }
 
     this->clearBuffer();
     return 1;
+}
+
+inline void RE_Trans::queueProcess()
+{
+    if (digitalRead(IM920_PROPS.busy_pin))
+    {
+        data_send_flag = false;
+    }
+    if (obs1.isChanged(flag_set.sw1_state) ||
+        obs2.isChanged(flag_set.sw2_state) ||
+        obs3.isChanged(flag_set.sw3_state) ||
+        obs4.isChanged(flag_set.sw4_state) ||
+        obs5.isChanged(flag_set.sw5_state) ||
+        obs6.isChanged(flag_set.sw6_state) ||
+        obs7.isChanged(flag_set.sw7_state) ||
+        obs8.isChanged(flag_set.sw8_state) ||
+        obs9.isChanged(flag_set.sw9_state) ||
+        obs10.isChanged(flag_set.sw10_state) ||
+        obs11.isChanged(rescaling_analog_val(analogRead(ANALOGIN1_PROPS.pin), 6)))
+    {
+        data_send_flag = true;
+        queue++;
+    }
+    if (waitMs(transmit_interval))
+    {
+        queue++;
+        data_send_flag = true;
+    }
 }
 
 inline void RE_Trans::generateFrameData()
@@ -109,10 +151,12 @@ inline void RE_Trans::generateFrameData()
         // Serial.println(byte(dataFrame[i + 5]));
     }
     uint16_t potentiometer_val = analogRead(ANALOGIN1_PROPS.pin);
-    dataFrame[9] = rescaling_analog_val(potentiometer_val, 6) + ASCII_OFFSET;
+    uint8_t target_machine_num = rescaling_analog_val(potentiometer_val, 6);
+    updateTargetLEDs(target_machine_num);
+    dataFrame[9] = target_machine_num + ASCII_OFFSET;
     // Serial.print(log10(potentiometer_val));
     // Serial.print('\t');
-    // Serial.println(rescaling_analog_val(potentiometer_val, 6));
+    // Serial.println(target_machine_num);
     return;
 }
 
@@ -131,6 +175,56 @@ inline uint8_t RE_Trans::rescaling_analog_val(uint16_t analog_val, uint8_t divid
         }
     }
     return divide_num;
+}
+
+inline void RE_Trans::updateTargetLEDs(uint8_t machine_Num)
+{
+    bool LEDstate[4];
+    switch (machine_Num)
+    {
+    case 1:
+        LEDstate[0] = HIGH;
+        LEDstate[1] = LOW;
+        LEDstate[2] = LOW;
+        LEDstate[3] = LOW;
+        break;
+    case 2:
+        LEDstate[0] = LOW;
+        LEDstate[1] = HIGH;
+        LEDstate[2] = LOW;
+        LEDstate[3] = LOW;
+        break;
+    case 3:
+        LEDstate[0] = LOW;
+        LEDstate[1] = LOW;
+        LEDstate[2] = HIGH;
+        LEDstate[3] = LOW;
+        break;
+    case 4:
+        LEDstate[0] = LOW;
+        LEDstate[1] = LOW;
+        LEDstate[2] = LOW;
+        LEDstate[3] = HIGH;
+        break;
+    case 5:
+        LEDstate[0] = HIGH;
+        LEDstate[1] = HIGH;
+        LEDstate[2] = LOW;
+        LEDstate[3] = LOW;
+        break;
+    case 6:
+        LEDstate[0] = LOW;
+        LEDstate[1] = LOW;
+        LEDstate[2] = HIGH;
+        LEDstate[3] = HIGH;
+        break;
+    default:
+        break;
+    }
+    digitalWrite(userLED1.pin, LEDstate[0]);
+    digitalWrite(userLED2.pin, LEDstate[1]);
+    digitalWrite(userLED3.pin, LEDstate[2]);
+    digitalWrite(userLED4.pin, LEDstate[3]);
 }
 
 inline void RE_Trans::clearBuffer()

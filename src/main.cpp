@@ -35,6 +35,8 @@ void debugPrint();
 void setup()
 {
   Serial.begin(256000);
+  Serial.println("boot");
+  re_trans.initialize();
 }
 
 void loop()
